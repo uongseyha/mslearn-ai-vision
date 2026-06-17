@@ -5,6 +5,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Add references
+from openai import OpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 
 def main(): 
@@ -21,6 +23,12 @@ def main():
 
 
         # Create an OpenAI client
+        credential = DefaultAzureCredential()
+        token_provider = get_bearer_token_provider(credential, "https://ai.azure.com/.default")
+        client = OpenAI(
+            base_url=openai_endpoint,
+            api_key=token_provider()
+        )
         
 
 
@@ -39,7 +47,39 @@ def main():
                 print("Getting a response ...\n")
 
 
-                # Get a response to image input
+                # # Get a response to image input - using an image URL
+                # image_url = "https://microsoftlearning.github.io/mslearn-ai-vision/Labfiles/gen-ai-vision/orange.jpeg"
+                # response = client.responses.create(
+                #     model=model_deployment,
+                #     input=[
+                #         {"role": "developer", "content": system_message},
+                #         { "role": "user", "content": [  
+                #             { "type": "input_text", "text": prompt},
+                #             { "type": "input_image", "image_url": image_url}
+                #         ]} 
+                #     ]
+                # )
+                # print(response.output_text)
+
+                # Get a response to image input - using a local image file
+                image_path = Path("mystery-fruit.jpeg")
+                image_format = "jpeg"
+                with open(image_path, "rb") as image_file:
+                    image_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+                data_url = f"data:image/{image_format};base64,{image_data}"
+
+                response = client.responses.create(
+                    model=model_deployment,
+                    input=[
+                        {"role": "developer", "content": system_message},
+                        { "role": "user", "content": [  
+                            { "type": "input_text", "text": prompt},
+                            { "type": "input_image", "image_url": data_url}
+                        ]} 
+                    ]
+                )
+                print(response.output_text)
                     
 
 
