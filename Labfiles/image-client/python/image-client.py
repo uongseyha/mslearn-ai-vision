@@ -2,6 +2,11 @@ import os
 import json
 
 # Add references
+from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from openai import OpenAI
+import requests
+import base64
 
 
 def main(): 
@@ -17,6 +22,16 @@ def main():
         model_deployment =  os.getenv("MODEL_DEPLOYMENT")
         
         # Initialize the client
+        token_provider = get_bearer_token_provider(
+            DefaultAzureCredential(exclude_environment_credential=True,
+                exclude_managed_identity_credential=True), 
+            "https://cognitiveservices.azure.com/.default"
+        )
+            
+        client = OpenAI(
+            base_url=endpoint,
+            api_key=token_provider(),
+        )
         
         
 
@@ -33,6 +48,15 @@ def main():
                 continue
             
             # Generate an image
+            img = client.images.generate(
+                model=model_deployment,
+                prompt=input_text,
+                n=1
+            )
+
+            json_response = json.loads(img.model_dump_json())
+            image_data = json_response["data"][0].get("b64_json")
+            image_data_in_bytes = base64.b64decode(image_data)
             
 
             # save the image
